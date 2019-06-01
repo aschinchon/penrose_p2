@@ -32,12 +32,6 @@ RotatePolygon <- function(df, angle) {
 }
 
 
-
-# ggplot(init_polygon)+
-#   geom_segment(aes(x = x, y = y, xend = xend, yend = yend))+
-#   coord_equal() +
-#   theme_void()
-
 # In each interation I have to divide two kind of triangles. I named them Triangle123
 # and Triangle124 following the specs of this site:
 # https://tartarus.org/~simon/20110412-penrose/penrose.xhtml
@@ -179,7 +173,6 @@ DivideTriangle124 <- function(df) {
   
 }
 
-
 # This function gathers both previous functions to divide a generic triangle depending
 # of its type
 Divide <- function(df)
@@ -200,12 +193,11 @@ Divide_df <- function(df){
     bind_rows()
 }
 
-# This function performs two important tasks:
+# This function performs two tasks:
 #   1. Group points (x,y), (xend, yend) to fix problems of rounding 
 #      using hierarchical clustering
 #   2. Gather adjacent triangles sharing sides of type 3 or 4 and remove them
 Arrange_df <- function(df){
-  
   df %>% round(0) -> df
   
   # Unique points which define segments
@@ -296,10 +288,8 @@ Create_Polygon <- function(df)
   
 }
 
-
-
-# Depth of the tessellation (more than 6 takes so long time)
-niter <- 5
+# Depth of the tessellation (<= 6 is ok)
+niter <- 4
 
 init_kite <- CreateKite()
 
@@ -311,17 +301,16 @@ seq(from = 0, by=72, length.out = 5) %>%
   round(0) -> init_polygon
 
 
-# Raw Tessellation
+# Raw tessellation
 reduce(
   .x = 1:niter,
   .f = function(old, y) {Divide_df(old)},
   .init=init_polygon) -> raw_tessellation
 
-
 # Tessellation segment struct
 segment_tessellation <- Arrange_df(raw_tessellation)
 
-
+# Create polygons
 segment_tessellation %>% group_by(poly_id) %>% 
   group_split() %>% lapply(Create_Polygon) %>%  
   bind_rows(.id = "poly_id") -> poly_tessellation
@@ -337,7 +326,7 @@ poly_tessellation %>%
 # Add areas to polygons
 poly_tessellation %>% inner_join(areas, by = "poly_id") -> poly_tessellation
 
-# Pick two colorus you like and 
+# Pick two colorus you like and plot it
 ggplot(poly_tessellation) + 
   geom_polygon(aes(x=x, y=y, group = poly_id, fill = area), 
                col = "gray65",  
@@ -347,7 +336,5 @@ ggplot(poly_tessellation) +
   coord_equal() + 
   theme_void() + 
   theme(legend.position='none') 
-
-ggsave("penrose5.png", width = 3, height = 3)
 
 
